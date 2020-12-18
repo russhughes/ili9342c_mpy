@@ -2,9 +2,14 @@
 
 ![Image](docs/m5stack_hello.jpg)
 
+
+
+[Video of Toaster bitmap demo](https://youtu.be/0uWsjKQmCpU)
+
 ## This is a work in progress
 
-This driver is based on [devbis' st7789_mpy driver.](https://github.com/devbis/st7789_mpy)  I modified the original driver for one of my projects by adding
+This driver is based on [devbis' st7789_mpy driver.](https://github.com/devbis/st7789_mpy)
+I modified the original driver for one of my projects by adding
 support for display rotation, scrolling and drawing text using 8 and 16 bit
 wide bitmap fonts. Included are 12 bitmap fonts derived from classic pc text
 mode fonts and a couple of example programs that run on the M5Stack Core.
@@ -12,9 +17,9 @@ The driver supports 320x240 displays.
 
 ## Pre-compiled MicroPython firmware
 
-The firmware directory contains pre-compiled MicroPython v1.13-248-gf305c62a5
+The firmware directory contains pre-compiled MicroPython MicroPython v1.13-249-gc7f996cad
 ESP32 GENERIC firmware.bin with the ILI9342C C driver and frozen python font
-files compiled with ESP-IDF 4
+files compiled with ESP-IDF 4.
 
 ## 128 Character Fonts
 
@@ -170,6 +175,13 @@ This driver supports only 16bit colors in RGB565 notation.
   foreground color defaults to `WHITE` and the background color defaults to
   `BLACK`.  See the fonts directory for example fonts and the utils directory
   for a font conversion program. Currently has issues with characters > 127.
+
+- `ILI9342C.bitmap(bitmap, x , y)`
+
+  Draw bitmap using the specified x, y coordinates as the upper-left corner of
+  the of the bitmap.  See the imgtobitmap.py file in the utils folder for a
+  python utility to create compatible bitmaps from image files using the
+  Pillow Python Imaging Library.
 
 - `ILI9342C.width()`
 

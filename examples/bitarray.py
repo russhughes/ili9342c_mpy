@@ -117,19 +117,20 @@ def main():
         # initialize display
 
         tft = ili9342c.ILI9342C(
-            SPI(2, baudrate=30000000, polarity=1, phase=1, sck=Pin(18), mosi=Pin(23)),
+            SPI(2, baudrate=40000000, polarity=1, phase=1, sck=Pin(18), mosi=Pin(23)),
             320,
             240,
             reset=Pin(33, Pin.OUT),
             cs=Pin(14, Pin.OUT),
             dc=Pin(27, Pin.OUT),
             backlight=Pin(32, Pin.OUT),
-            rotation=0)
+            rotation=0,
+            buffer_size=16*16*2)
 
         # enable display and clear screen
         tft.init()
         tft.fill(ili9342c.BLACK)
-        time.sleep(3)
+        time.sleep(1)
 
         sprite = bytearray(512)
 
@@ -151,6 +152,7 @@ def main():
                 man.move()
 
                 # convert bitmap into rgb565 blitable buffer
+
                 tft.map_bitarray_to_rgb565(
                     SPRITE_BITMAPS[man.step],
                     sprite,

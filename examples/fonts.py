@@ -23,11 +23,12 @@ def main():
         cs=Pin(14, Pin.OUT),
         dc=Pin(27, Pin.OUT),
         backlight=Pin(32, Pin.OUT),
-        rotation=0)
+        rotation=0,
+        buffer_size=16*32*2)
 
     tft.init()
-    tft.fill(0)
-    utime.sleep(3)
+    tft.fill(ili9342c.BLACK)
+    utime.sleep(1)
 
     while True:
         for font in (font1, font2, font3, font4):

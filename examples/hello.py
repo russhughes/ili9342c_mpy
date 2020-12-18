@@ -8,24 +8,8 @@ hello.py
 import time
 import random
 from machine import Pin, SPI
+
 import ili9342c
-
-# Choose a font
-
-# import vga1_8x8 as font
-# import vga2_8x8 as font
-
-# import vga1_8x16 as font
-# import vga2_8x16 as font
-
-# import vga1_16x16 as font
-# import vga1_bold_16x16 as font
-# import vga2_16x16 as font
-# import vga2_bold_16x16 as font
-
-# import vga1_16x32 as font
-# import vga1_bold_16x32 as font
-# import vga2_16x32 as font
 import vga2_bold_16x32 as font
 
 def main():
@@ -37,11 +21,12 @@ def main():
         cs=Pin(14, Pin.OUT),
         dc=Pin(27, Pin.OUT),
         backlight=Pin(32, Pin.OUT),
-        rotation=0)
+        rotation=0,
+        buffer_size=16*32*2)
 
     tft.init()
-    tft.fill(0)
-    time.sleep(3)
+    tft.fill(ili9342c.BLACK)
+    time.sleep(1)
 
     while True:
         for rotation in range(4):
@@ -50,7 +35,7 @@ def main():
             col_max = tft.width() - font.WIDTH*6
             row_max = tft.height() - font.HEIGHT
 
-            for _ in range(250):
+            for _ in range(1000):
                 tft.text(
                     font,
                     "Hello!",

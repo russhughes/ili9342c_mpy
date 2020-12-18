@@ -10,17 +10,8 @@ scroll.py
 import utime
 import random
 from machine import Pin, SPI
+
 import ili9342c
-
-# choose a font
-# import vga1_8x8 as font
-# import vga2_8x8 as font
-# import vga1_8x16 as font
-# import vga2_8x16 as font
-# import vga1_16x16 as font
-# import vga1_bold_16x16 as font
-# import vga2_16x16 as font
-
 import vga2_bold_16x16 as font
 
 def cycle(p):
@@ -44,7 +35,8 @@ def main():
         cs=Pin(14, Pin.OUT),
         dc=Pin(27, Pin.OUT),
         backlight=Pin(32, Pin.OUT),
-        rotation=0)
+        rotation=0,
+        buffer_size=16*16*2)
 
     colors = cycle([0xe000, 0xece0, 0xe7e0, 0x5e0, 0x00d3, 0x7030])
     foreground = next(colors)
@@ -52,7 +44,7 @@ def main():
 
     tft.init()
     tft.fill(background)
-    utime.sleep(5)
+    utime.sleep(1)
 
     height = tft.height()
     width = tft.width()
