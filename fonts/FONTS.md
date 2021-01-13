@@ -8,7 +8,7 @@ Frozen font files are included in the firmware.
 
 Frozen | Font                                                  | Example
 ------ | ----------------------------------------------------- | -----------------------------
-Yes    | [vga1_8x8.py](fonts/bitmap/vga1_8x8.py)               | ![Image](vga1_8x8.png)
+Yes    | [vga1_8x8.py](/fonts/bitmap/vga1_8x8.py)              | ![Image](/docs/vga1_8x8.png)
 Yes    | [vga1_16x16.py](fonts/bitmap/vga1_16x16.py)           | ![Image](vga1_16x16.png)
 Yes    | [vga1_16x32.py](fonts/bitmap/vga1_16x32.py)           | ![Image](vga1_16x32.png)
 Yes    | [vga1_bold_16x16.py](fonts/bitmap/vga1_bold_16x16.py) | ![Image](vga1_bold_16x16.png)
