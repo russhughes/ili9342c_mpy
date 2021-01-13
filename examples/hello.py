@@ -10,7 +10,7 @@ import random
 from machine import Pin, SPI
 
 import ili9342c
-import vga2_bold_16x32 as font
+import vga1_bold_16x32 as font
 
 def main():
     tft = ili9342c.ILI9342C(

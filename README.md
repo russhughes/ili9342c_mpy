@@ -9,41 +9,23 @@
 ## This is a work in progress
 
 This driver is based on [devbis' st7789_mpy driver.](https://github.com/devbis/st7789_mpy)
-I modified the original driver for one of my projects by adding
-support for display rotation, scrolling and drawing text using 8 and 16 bit
-wide bitmap fonts. Included are 12 bitmap fonts derived from classic pc text
-mode fonts and a couple of example programs that run on the M5Stack Core.
-The driver supports 320x240 displays.
+I modified the original driver for one of my projects to add:
+
+- Display Rotation
+- Scrolling
+- Drawing text using 8 and 16 bit wide bitmap fonts
+- Drawing text using Hershey vector fonts
+- Drawing JPG's, including a SLOW mode to draw jpg's larger than available ram
+  using the TJpgDec - Tiny JPEG Decompressor R0.01d. from
+  http://elm-chan.org/fsw/tjpgd/00index.html
+
+Included are 12 bitmap fonts derived from classic pc text mode fonts, 26 Hershey vector fonts and several example
+programs that run on the M5Stack Core. This driver supports 320x240 displays.
 
 ## Pre-compiled MicroPython firmware
 
-The firmware directory contains pre-compiled MicroPython MicroPython v1.13-249-gc7f996cad
-ESP32 GENERIC firmware.bin with the ILI9342C C driver and frozen python font
-files compiled with ESP-IDF 4.
-
-## 128 Character Fonts
-
-
-Font               | Example
------------------- | -----------------------------------------------------------
-vga1_8x8.py        | ![Image](docs/vga1_8x8.png)
-vga1_16x16.py      | ![Image](docs/vga1_16x16.png)
-vga1_16x32.py      | ![Image](docs/vga1_16x32.png)
-vga1_bold_16x16.py | ![Image](docs/vga1_bold_16x16.png)
-vga1_bold_16x32.py | ![Image](docs/vga1_bold_16x32.png)
-
-
-## 256 Character Fonts
-
-Font               | Example
------------------- | -----------------------------------------------------------
-vga2_8x8.py        | ![Image](docs/vga2_8x8.png)
-vga2_8x16.py       | ![Image](docs/vga2_8x16.png)
-vga2_16x16.py      | ![Image](docs/vga2_16x16.png)
-vga2_16x32.py      | ![Image](docs/vga2_16x32.png)
-vga2_bold_16x16.py | ![Image](docs/vga2_bold_16x16.png)
-vga2_bold_16x32.py | ![Image](docs/vga2_bold_16x32.png)
-
+The firmware directory contains pre-compiled MicroPython v1.13 ESP32 GENERIC firmware.bin with the
+ILI9342C C driver and frozen python font files compiled with ESP-IDF 4
 
 
 ## Thanks go out to:
@@ -112,7 +94,7 @@ for sample programs.
 
 ## Methods
 
-- `ili9342c.ILI9342C(spi, width, height, reset, dc, cs, backlight, rotation)`
+- `ili9342c.ILI9342C(spi, width, height, reset, dc, cs, backlight, rotation, buffer_size)`
 
     required args:
 
@@ -127,6 +109,11 @@ for sample programs.
         `cs` cs pin
         `backlight` backlight pin
         `rotation` 0-0 degrees, 1-90 degrees, 2-180 degrees, 3-270 degrees
+        `buffer_size` 0= buffer dynamically allocated and freed as needed.
+
+    If buffer_size is specified it must be large enough to contain the largest
+    bitmap and/or JPG used (Rows * Columns *2 bytes).
+
 
 This driver supports only 16bit colors in RGB565 notation.
 
@@ -167,14 +154,29 @@ This driver supports only 16bit colors in RGB565 notation.
   Copy bytes() or bytearray() content to the screen internal memory.
   Note: every color requires 2 bytes in the array
 
-- `ILI9342C.text(font, s, x, y[, fg, bg])`
+- `ILI9342C.text(bitap_font, s, x, y[, fg, bg])`
 
-  Write text to the display using the specified font with the coordinates as
+  Write text to the display using the specified bitmap font with the coordinates as
   the upper-left corner of the text. The foreground and background colors of
   the text can be set by the optional arguments fg and bg, otherwise the
   foreground color defaults to `WHITE` and the background color defaults to
-  `BLACK`.  See the fonts directory for example fonts and the utils directory
-  for a font conversion program. Currently has issues with characters > 127.
+  `BLACK`.  See the README.md in the fonts directory for example fonts.
+
+- `ILI9342C.draw(vector_font, s, x, y[, fg, bg])`
+
+  Draw text to the display using the specified hershey vector font with the coordinates
+  as the lower-left corner of the text. The foreground and background colors of
+  the text can be set by the optional arguments fg and bg, otherwise the
+  foreground color defaults to `WHITE` and the background color defaults to
+  `BLACK`.  See the README.md in the fonts directory for example fonts and the
+  utils directory for a font conversion program.
+
+- `LI9342C.jpg(jpg_filename, x, y [, method])`
+
+  Draw JPG file on the display at the given x and y coordinates as the upper left corner of
+  the image. There memory required to decode and display a JPG can be considerable as a full
+  screen 320x240 JPG would require at least 3100 bytes for the working area + 320x240x2 bytes
+  of ram to buffer the image.
 
 - `ILI9342C.bitmap(bitmap, x , y)`
 
@@ -269,3 +271,4 @@ in the `.irom0.text : ALIGN(4)` section
 #### Unsupported dimensions
 
 This driver supports only 320x240 pixel displays.
+

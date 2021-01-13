@@ -12,7 +12,7 @@ import random
 from machine import Pin, SPI
 
 import ili9342c
-import vga2_bold_16x16 as font
+import vga1_bold_16x16 as font
 
 def cycle(p):
     try:
