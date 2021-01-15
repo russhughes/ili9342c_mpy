@@ -1,4 +1,9 @@
 /*
+ * Copyright (c) 2020, 2021 Russ Hughes
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
  * The MIT License (MIT)
  *
  * Copyright (c) 2019 Ivan Belokobylskiy
@@ -22,15 +27,19 @@
  * THE SOFTWARE.
  */
 
-#define __ILI9342C_VERSION__ "0.0.1"
+#define __ILI9342C_VERSION__ "0.0.3"
 #include <stdlib.h>
+#include <math.h>
 #include "py/obj.h"
 #include "py/objmodule.h"
 #include "py/runtime.h"
 #include "py/builtin.h"
 #include "py/mphal.h"
 #include "extmod/machine_spi.h"
+
 #include "ili9342c.h"
+#include "mpfile.c"
+#include "tjpgd565.c"
 
 #define _swap_int16_t(a, b) \
 	{                       \
@@ -75,21 +84,21 @@
 // this is the actual C-structure for our new object
 typedef struct _ili9342c_ILI9342C_obj_t {
 	mp_obj_base_t	 base;
-	mp_obj_base_t *	 spi_obj;
-	uint16_t		 display_width;	 // physical width
-	uint16_t		 width;			 // logical width (after rotation)
-	uint16_t		 display_height; // physical width
-	uint16_t		 height;		 // logical height (after rotation)
+	mp_obj_base_t   *spi_obj;
+	mp_file_t		*fp;				// file object
+	uint16_t		*i2c_buffer;		// resident buffer if buffer_size given
+	uint16_t	 	 buffer_size;		// resident buffer size, 0=dynamic
+	uint16_t		 display_width;	 	// physical width
+	uint16_t		 width;			 	// logical width (after rotation)
+	uint16_t		 display_height; 	// physical width
+	uint16_t		 height;		 	// logical height (after rotation)
 	uint8_t			 rotation;
-	uint16_t		 buffer_size; // resident buffer size, 0=dynamic
 	mp_hal_pin_obj_t reset;
 	mp_hal_pin_obj_t dc;
 	mp_hal_pin_obj_t cs;
 	mp_hal_pin_obj_t backlight;
 } ili9342c_ILI9342C_obj_t;
 
-static uint16_t	 i2c_buffer_size = 0;	 // resident buffer size, 0=dynamic
-static uint16_t *i2c_buffer		 = NULL; // redident buffer for i2c blitting
 
 // forward reference prototype
 mp_obj_t ili9342c_ILI9342C_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args);
@@ -252,7 +261,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_set_window(size_t n_args, const mp_obj_t *args
 	set_window(self, x0, y0, x1, y1);
 	return mp_const_none;
 }
-STATIC			MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_set_window_obj, 5, 5, ili9342c_ILI9342C_set_window);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_set_window_obj, 5, 5, ili9342c_ILI9342C_set_window);
 STATIC mp_obj_t ili9342c_ILI9342C_inversion_mode(mp_obj_t self_in, mp_obj_t value) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
@@ -312,15 +321,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_pixel(size_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_pixel_obj, 4, 4, ili9342c_ILI9342C_pixel);
 
-STATIC mp_obj_t ili9342c_ILI9342C_line(size_t n_args, const mp_obj_t *args) {
-	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
-
-	mp_int_t x0	   = mp_obj_get_int(args[1]);
-	mp_int_t y0	   = mp_obj_get_int(args[2]);
-	mp_int_t x1	   = mp_obj_get_int(args[3]);
-	mp_int_t y1	   = mp_obj_get_int(args[4]);
-	mp_int_t color = mp_obj_get_int(args[5]);
-
+STATIC void line(ili9342c_ILI9342C_obj_t *self, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t color) {
 	bool steep = ABS(y1 - y0) > ABS(x1 - x0);
 	if (steep) {
 		_swap_int16_t(x0, y0);
@@ -374,8 +375,23 @@ STATIC mp_obj_t ili9342c_ILI9342C_line(size_t n_args, const mp_obj_t *args) {
 		if (dlen)
 			fast_hline(self, xs, y0, dlen, color);
 	}
+}
+
+
+STATIC mp_obj_t ili9342c_ILI9342C_line(size_t n_args, const mp_obj_t *args) {
+	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
+
+	mp_int_t x0	   = mp_obj_get_int(args[1]);
+	mp_int_t y0	   = mp_obj_get_int(args[2]);
+	mp_int_t x1	   = mp_obj_get_int(args[3]);
+	mp_int_t y1	   = mp_obj_get_int(args[4]);
+	mp_int_t color = mp_obj_get_int(args[5]);
+
+	line(self, x0, y0, x1, y1, color);
+
 	return mp_const_none;
 }
+
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_line_obj, 6, 6, ili9342c_ILI9342C_line);
 
 STATIC mp_obj_t ili9342c_ILI9342C_blit_buffer(size_t n_args, const mp_obj_t *args) {
@@ -410,6 +426,102 @@ STATIC mp_obj_t ili9342c_ILI9342C_blit_buffer(size_t n_args, const mp_obj_t *arg
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_blit_buffer_obj, 6, 6, ili9342c_ILI9342C_blit_buffer);
+
+
+STATIC mp_obj_t ili9342c_ILI9342C_draw(size_t n_args, const mp_obj_t *args) {
+	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
+	char		single_char_s[] = {0, 0};
+	const char *s;
+
+	mp_obj_module_t *hershey   = MP_OBJ_TO_PTR(args[1]);
+
+	if (mp_obj_is_int(args[2])) {
+		mp_int_t c		 = mp_obj_get_int(args[2]);
+		single_char_s[0] = c & 0xff;
+		s				 = single_char_s;
+	} else {
+		s= mp_obj_str_get_str(args[2]);
+	}
+
+	mp_int_t		 x		   = mp_obj_get_int(args[3]);
+	mp_int_t		 y		   = mp_obj_get_int(args[4]);
+	mp_int_t		 color     = mp_obj_get_int(args[5]);
+
+    mp_float_t scale = 1.0;
+    if (mp_obj_is_float(args[6])) {
+        scale = mp_obj_float_get(args[6]);
+    }
+
+    if (mp_obj_is_int(args[6])) {
+        scale =  (float) mp_obj_get_int(args[6]);
+    }
+
+	mp_obj_dict_t *	 dict	   = MP_OBJ_TO_PTR(hershey->globals);
+	mp_obj_t *		 index_data_buff = mp_obj_dict_get(dict, MP_OBJ_NEW_QSTR(MP_QSTR_INDEX));
+	mp_buffer_info_t index_bufinfo;
+	mp_get_buffer_raise(index_data_buff, &index_bufinfo, MP_BUFFER_READ);
+	uint8_t *index = index_bufinfo.buf;
+
+	mp_obj_t *		 font_data_buff = mp_obj_dict_get(dict, MP_OBJ_NEW_QSTR(MP_QSTR_FONT));
+	mp_buffer_info_t font_bufinfo;
+	mp_get_buffer_raise(font_data_buff, &font_bufinfo, MP_BUFFER_READ);
+	int8_t *font = font_bufinfo.buf;
+
+    int16_t from_x = x;
+    int16_t from_y  = y;
+    int16_t to_x = x;
+    int16_t to_y = y;
+    int16_t pos_x = x;
+    int16_t pos_y = y;
+    bool penup = true;
+    char c;
+    int16_t ii;
+
+    while ((c = *s++)) {
+        if (c >= 32 && c <= 127) {
+            ii = (c-32) * 2;
+
+			int16_t offset = index[ii] | (index[ii+1] << 8);
+            int16_t length = font[offset++];
+            int16_t left = lround((font[offset++] - 0x52) * scale);
+            int16_t right = lround((font[offset++] - 0x52) * scale);
+            int16_t width = right - left;
+
+            if (length) {
+                int16_t i;
+                for (i = 0; i < length; i++) {
+                    if (font[offset] == ' ') {
+                        offset+=2;
+                        penup = true;
+                        continue;
+                    }
+
+                    int16_t vector_x = lround((font[offset++] - 0x52) * scale);
+                    int16_t vector_y = lround((font[offset++] - 0x52) * scale);
+
+                    if (!i ||  penup) {
+                        from_x = pos_x + vector_x - left;
+                        from_y = pos_y + vector_y;
+                    } else {
+                        to_x = pos_x + vector_x - left;
+                        to_y = pos_y + vector_y;
+
+                        line(self, from_x, from_y, to_x, to_y, color);
+                        from_x = to_x;
+                        from_y = to_y;
+                    }
+                    penup = false;
+                }
+                pos_x += width;
+            }
+        }
+    }
+
+	return mp_const_none;
+}
+
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_draw_obj, 6, 7, ili9342c_ILI9342C_draw);
+
 
 STATIC uint16_t bs_bit		= 0;
 uint8_t *		bitmap_data = NULL;
@@ -451,8 +563,8 @@ STATIC mp_obj_t ili9342c_ILI9342C_bitmap(size_t n_args, const mp_obj_t *args) {
 	bitmap_data = bufinfo.buf;
 
 	uint16_t buf_size = width * height * 2;
-	if (i2c_buffer == NULL) {
-		i2c_buffer = malloc(buf_size);
+	if (self->buffer_size == 0) {
+		self->i2c_buffer = m_malloc(buf_size);
 	}
 
 	uint16_t ofs = 0;
@@ -460,7 +572,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_bitmap(size_t n_args, const mp_obj_t *args) {
 
 	for (int yy = 0; yy < height; yy++) {
 		for (int xx = 0; xx < width; xx++) {
-			i2c_buffer[ofs++] = mp_obj_get_int(palette[get_color(bpp + 1)]);
+			self->i2c_buffer[ofs++] = mp_obj_get_int(palette[get_color(bpp + 1)]);
 		}
 	}
 
@@ -469,13 +581,12 @@ STATIC mp_obj_t ili9342c_ILI9342C_bitmap(size_t n_args, const mp_obj_t *args) {
 		set_window(self, x, y, x1, y + height - 1);
 		DC_HIGH();
 		CS_LOW();
-		write_spi(self->spi_obj, (uint8_t *) i2c_buffer, buf_size);
+		write_spi(self->spi_obj, (uint8_t *) self->i2c_buffer, buf_size);
 		CS_HIGH();
 	}
 
 	if (self->buffer_size == 0) {
-		free(i2c_buffer);
-		i2c_buffer = NULL;
+		m_free(self->i2c_buffer);
 	}
 	return mp_const_none;
 }
@@ -494,8 +605,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 		mp_int_t c		 = mp_obj_get_int(args[2]);
 		single_char_s[0] = c & 0xff;
 		str				 = single_char_s;
-	} else
+	} else {
 		str = mp_obj_str_get_str(args[2]);
+	}
 
 	mp_int_t x0 = mp_obj_get_int(args[3]);
 	mp_int_t y0 = mp_obj_get_int(args[4]);
@@ -527,11 +639,11 @@ STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 	uint8_t	 wide	  = width / 8;
 	uint16_t buf_size = width * height * 2;
 
-	if (i2c_buffer == NULL) {
-		i2c_buffer = malloc(buf_size);
+	if (self->buffer_size == 0) {
+		self->i2c_buffer = m_malloc(buf_size);
 	}
 
-	if (i2c_buffer) {
+	if (self->i2c_buffer) {
 		uint8_t chr;
 		while ((chr = *str++)) {
 			fflush(stdout);
@@ -543,9 +655,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 						uint8_t chr_data = font_data[chr_idx];
 						for (uint8_t bit = 8; bit; bit--) {
 							if (chr_data >> (bit - 1) & 1)
-								i2c_buffer[buf_idx] = fg_color;
+								self->i2c_buffer[buf_idx] = fg_color;
 							else
-								i2c_buffer[buf_idx] = bg_color;
+								self->i2c_buffer[buf_idx] = bg_color;
 							buf_idx++;
 						}
 						chr_idx++;
@@ -556,15 +668,14 @@ STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 					set_window(self, x0, y0, x1, y0 + height - 1);
 					DC_HIGH();
 					CS_LOW();
-					write_spi(self->spi_obj, (uint8_t *) i2c_buffer, buf_size);
+					write_spi(self->spi_obj, (uint8_t *) self->i2c_buffer, buf_size);
 					CS_HIGH();
 				}
 				x0 += width;
 			}
 		}
 		if (self->buffer_size == 0) {
-			free(i2c_buffer);
-			i2c_buffer = NULL;
+			m_free(self->i2c_buffer);
 		}
 	}
 	return mp_const_none;
@@ -777,6 +888,187 @@ STATIC mp_obj_t ili9342c_map_bitarray_to_rgb565(size_t n_args, const mp_obj_t *a
 
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_map_bitarray_to_rgb565_obj, 3, 6, ili9342c_map_bitarray_to_rgb565);
 
+//
+// jpg routines
+//
+
+#define JPG_MODE_FAST (0)
+#define JPG_MODE_SLOW (1)
+
+// User defined device identifier
+typedef struct {
+    mp_file_t *fp;          		// File pointer for input function
+    uint8_t *fbuf;          		// Pointer to the frame buffer for output function
+    unsigned int wfbuf;     		// Width of the frame buffer [pix]
+	ili9342c_ILI9342C_obj_t *self;	// display object
+} IODEV;
+
+//
+// User defined input function
+//
+
+static unsigned int in_func(    // Returns number of bytes read (zero on error)
+    JDEC* jd,                   // Decompression object
+    uint8_t* buff,              // Pointer to the read buffer (null to remove data)
+    unsigned int nbyte )        // Number of bytes to read/remove
+{
+    IODEV *dev = (IODEV*)jd->device;   // Device identifier for the session (5th argument of jd_prepare function)
+	unsigned int nread;
+
+    if (buff) { // Read data from input stream
+        nread = (unsigned int)mp_readinto(dev->fp, buff, nbyte);
+		return nread;
+    }
+
+    // Remove data from input stream if buff was NULL
+    mp_seek(dev->fp, nbyte, SEEK_CUR);
+    return 0;
+}
+
+//
+// User defined output function
+//
+
+static int out_fast (       // 1:Ok, 0:Aborted
+    JDEC* jd,               // Decompression object
+    void* bitmap,           // Bitmap data to be output
+    JRECT* rect )           // Rectangular region of output image
+{
+    IODEV *dev = (IODEV*)jd->device;
+    uint8_t *src, *dst;
+    uint16_t y, bws, bwd;
+
+    // Copy the decompressed RGB rectanglar to the frame buffer (assuming RGB565)
+    src = (uint8_t*)bitmap;
+    dst = dev->fbuf + 2 * (rect->top * dev->wfbuf + rect->left);    // Left-top of destination rectangular
+    bws = 2 * (rect->right - rect->left + 1);                       // Width of source rectangular [byte]
+    bwd = 2 * dev->wfbuf;                                           // Width of frame buffer [byte]
+    for (y = rect->top; y <= rect->bottom; y++) {
+        memcpy(dst, src, bws);                                      // Copy a line
+        src += bws; dst += bwd;                                     // Next line
+    }
+
+    return 1;    // Continue to decompress
+}
+
+//
+// User defined output function
+//
+
+static int out_slow (       // 1:Ok, 0:Aborted
+    JDEC* jd,               // Decompression object
+    void* bitmap,           // Bitmap data to be output
+    JRECT* rect )           // Rectangular region of output image
+{
+	IODEV *dev = (IODEV*)jd->device;
+    ili9342c_ILI9342C_obj_t *self = dev->self;
+
+    uint8_t *src, *dst;
+    uint16_t y;
+	uint16_t wx2 = (rect->right-rect->left+1) *2;
+	uint16_t h = rect->bottom-rect->top+1;
+
+    // Copy the decompressed RGB rectanglar to the frame buffer (assuming RGB565)
+    src = (uint8_t*)bitmap;
+    dst = dev->fbuf;    							// Left-top of destination rectangular
+	for (y = rect->top; y <= rect->bottom; y++) {
+        memcpy(dst, src, wx2);                      // Copy a line
+        src += wx2; dst += wx2;                     // Next line
+    }
+
+	// blit buffer to display
+
+	set_window(self, rect->left, rect->top, rect->right, rect->bottom);
+	DC_HIGH();
+	CS_LOW();
+	write_spi(self->spi_obj, (uint8_t *) dev->fbuf, wx2 * h);
+	CS_HIGH();
+
+    return 1;    // Continue to decompress
+}
+
+
+STATIC mp_obj_t ili9342c_ILI9342C_jpg(size_t n_args, const mp_obj_t *args) {
+	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
+
+	const char *filename = mp_obj_str_get_str(args[1]);
+	mp_int_t x	  		 = mp_obj_get_int(args[2]);
+	mp_int_t y	  		 = mp_obj_get_int(args[3]);
+
+	mp_int_t mode;
+
+	if (n_args > 4)
+		mode = mp_obj_get_int(args[4]);
+	else
+		mode = JPG_MODE_FAST;
+
+	int (*outfunc)(JDEC*,void*,JRECT*);
+
+    JRESULT res;                        // Result code of TJpgDec API
+    JDEC jdec;                          // Decompression object
+    void *work = (void*)malloc(3100);   // Pointer to the work area
+    IODEV devid;                        // User defined device identifier
+    size_t bufsize;
+
+    self->fp = mp_open(filename, "rb");
+	devid.fp = self->fp;
+    if (devid.fp) {
+		// Prepare to decompress
+		res = jd_prepare(&jdec, in_func, work, 3100, &devid);
+		if (res == JDR_OK) {
+			// Initialize output device
+			if (mode == JPG_MODE_FAST) {
+				bufsize = 2 * jdec.width * jdec.height;
+				outfunc = out_fast;
+			} else {
+				bufsize = 2 * jdec.msx*8 * jdec.msy*8;
+				outfunc = out_slow;
+			}
+			if (self->buffer_size && bufsize > self->buffer_size)
+				mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("buffer too small"));
+
+			if (self->buffer_size == 0) {
+				self->i2c_buffer = m_malloc(bufsize);
+			}
+
+			if (!self->i2c_buffer)
+				mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("out of memory"));
+
+			devid.fbuf = (uint8_t *) self->i2c_buffer;
+			devid.wfbuf = jdec.width;
+			devid.self = self;
+			res = jd_decomp(&jdec, outfunc, 0);        // Start to decompress with 1/1 scaling
+			if (res == JDR_OK) {
+				if (mode == JPG_MODE_FAST) {
+					set_window(self, x, y, x + jdec.width - 1, y + jdec.height - 1);
+					DC_HIGH();
+					CS_LOW();
+					write_spi(self->spi_obj, (uint8_t *) self->i2c_buffer, bufsize);
+					CS_HIGH();
+				}
+			} else {
+				mp_raise_msg(&mp_type_RuntimeError, MP_ERROR_TEXT("jpg decompress failed."));
+			}
+			if (self->buffer_size == 0) {
+				m_free(self->i2c_buffer);       // Discard frame buffer
+				self->i2c_buffer = MP_OBJ_NULL;
+			}
+			devid.fbuf = MP_OBJ_NULL;
+		} else {
+ 			mp_raise_msg(&mp_type_RuntimeError, MP_ERROR_TEXT("jpg prepare failed."));
+		}
+	    mp_close(devid.fp);
+	}
+	free(work);                 // Discard work area
+	return mp_const_none;
+}
+
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_jpg_obj, 4, 5, ili9342c_ILI9342C_jpg);
+
+//
+// Dictionary Table
+//
+
 STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 	{MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&ili9342c_ILI9342C_write_obj)},
 	{MP_ROM_QSTR(MP_QSTR_hard_reset), MP_ROM_PTR(&ili9342c_ILI9342C_hard_reset_obj)},
@@ -789,6 +1081,7 @@ STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 	{MP_ROM_QSTR(MP_QSTR_pixel), MP_ROM_PTR(&ili9342c_ILI9342C_pixel_obj)},
 	{MP_ROM_QSTR(MP_QSTR_line), MP_ROM_PTR(&ili9342c_ILI9342C_line_obj)},
 	{MP_ROM_QSTR(MP_QSTR_blit_buffer), MP_ROM_PTR(&ili9342c_ILI9342C_blit_buffer_obj)},
+	{MP_ROM_QSTR(MP_QSTR_draw), MP_ROM_PTR(&ili9342c_ILI9342C_draw_obj)},
 	{MP_ROM_QSTR(MP_QSTR_bitmap), MP_ROM_PTR(&ili9342c_ILI9342C_bitmap_obj)},
 	{MP_ROM_QSTR(MP_QSTR_fill_rect), MP_ROM_PTR(&ili9342c_ILI9342C_fill_rect_obj)},
 	{MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&ili9342c_ILI9342C_fill_obj)},
@@ -801,6 +1094,7 @@ STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 	{MP_ROM_QSTR(MP_QSTR_height), MP_ROM_PTR(&ili9342c_ILI9342C_height_obj)},
 	{MP_ROM_QSTR(MP_QSTR_vscrdef), MP_ROM_PTR(&ili9342c_ILI9342C_vscrdef_obj)},
 	{MP_ROM_QSTR(MP_QSTR_vscsad), MP_ROM_PTR(&ili9342c_ILI9342C_vscsad_obj)},
+	{MP_ROM_QSTR(MP_QSTR_jpg), MP_ROM_PTR(&ili9342c_ILI9342C_jpg_obj)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(ili9342c_ILI9342C_locals_dict, ili9342c_ILI9342C_locals_dict_table);
@@ -858,8 +1152,7 @@ mp_obj_t ili9342c_ILI9342C_make_new(const mp_obj_type_t *type, size_t n_args, si
 	self->buffer_size	   = args[ARG_buffer_size].u_int;
 
 	if (self->buffer_size) {
-		i2c_buffer_size = self->buffer_size;
-		i2c_buffer		= malloc(self->buffer_size);
+		self->i2c_buffer = m_malloc(self->buffer_size);
 	}
 
 	if ((self->display_height != 240 && self->display_width != 320) &&
@@ -901,6 +1194,8 @@ STATIC const mp_map_elem_t ili9342c_module_globals_table[] = {
 	{MP_ROM_QSTR(MP_QSTR_MAGENTA), MP_ROM_INT(MAGENTA)},
 	{MP_ROM_QSTR(MP_QSTR_YELLOW), MP_ROM_INT(YELLOW)},
 	{MP_ROM_QSTR(MP_QSTR_WHITE), MP_ROM_INT(WHITE)},
+	{MP_ROM_QSTR(MP_QSTR_FAST), MP_ROM_INT(JPG_MODE_FAST)},
+	{MP_ROM_QSTR(MP_QSTR_SLOW), MP_ROM_INT(JPG_MODE_SLOW)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_ili9342c_globals, ili9342c_module_globals_table);
