@@ -512,8 +512,8 @@ STATIC mp_obj_t ili9342c_ILI9342C_draw(size_t n_args, const mp_obj_t *args) {
                     }
                     penup = false;
                 }
-                pos_x += width;
             }
+			pos_x += width;
         }
     }
 
