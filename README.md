@@ -19,20 +19,23 @@ I modified the original driver for one of my projects to add:
   using the TJpgDec - Tiny JPEG Decompressor R0.01d. from
   http://elm-chan.org/fsw/tjpgd/00index.html
 
-Included are 12 bitmap fonts derived from classic pc text mode fonts, 26 Hershey vector fonts and several example
-programs that run on the M5Stack Core. This driver supports 320x240 displays.
+Included are 12 bitmap fonts derived from classic pc text mode fonts, 26
+Hershey vector fonts and several example programs that run on the M5Stack Core.
+This driver supports 320x240 displays.
 
 ## Pre-compiled MicroPython firmware
 
-The firmware directory contains pre-compiled MicroPython v1.13 ESP32 GENERIC firmware.bin with the
-ILI9342C C driver and frozen python font files compiled with ESP-IDF 4
+The firmware directory contains pre-compiled MicroPython v1.13 ESP32 GENERIC
+firmware.bin with the ILI9342C C driver and frozen python font files compiled
+with ESP-IDF 4
 
 
 ## Thanks go out to:
 
 - https://github.com/devbis for the original driver this is based on.
 - https://github.com/hklang10 for letting me know of the new mp_raise_ValueError().
-- https://github.com/aleggon for finding the correct offsets for a 240x240 display and discovering issues compiling for STM32 based boards.
+- https://github.com/aleggon for finding the correct offsets for a 240x240
+  display and discovering issues compiling for STM32 based boards.
 
 -- Russ
 
@@ -156,34 +159,38 @@ This driver supports only 16bit colors in RGB565 notation.
 
 - `ILI9342C.text(bitap_font, s, x, y[, fg, bg])`
 
-  Write text to the display using the specified bitmap font with the coordinates as
-  the upper-left corner of the text. The foreground and background colors of
-  the text can be set by the optional arguments fg and bg, otherwise the
-  foreground color defaults to `WHITE` and the background color defaults to
-  `BLACK`.  See the README.md in the fonts directory for example fonts.
+  Write text to the display using the specified bitmap font with the
+  coordinates as the upper-left corner of the text. The foreground and
+  background colors of the text can be set by the optional arguments fg and bg,
+  otherwise the foreground color defaults to `WHITE` and the background color
+  defaults to `BLACK`.  See the README.md in the fonts directory for example
+  fonts.
 
 - `ILI9342C.draw(vector_font, s, x, y[, fg, bg])`
 
-  Draw text to the display using the specified hershey vector font with the coordinates
-  as the lower-left corner of the text. The foreground and background colors of
-  the text can be set by the optional arguments fg and bg, otherwise the
-  foreground color defaults to `WHITE` and the background color defaults to
-  `BLACK`.  See the README.md in the fonts directory for example fonts and the
-  utils directory for a font conversion program.
+  Draw text to the display using the specified hershey vector font with the
+  coordinates as the lower-left corner of the text. The foreground and
+  background colors of the text can be set by the optional arguments fg and bg,
+  otherwise the foreground color defaults to `WHITE` and the background color
+  defaults to `BLACK`.  See the README.md in the fonts directory for example
+  fonts and the utils directory for a font conversion program.
 
 - `LI9342C.jpg(jpg_filename, x, y [, method])`
 
-  Draw JPG file on the display at the given x and y coordinates as the upper left corner of
-  the image. There memory required to decode and display a JPG can be considerable as a full
-  screen 320x240 JPG would require at least 3100 bytes for the working area + 320x240x2 bytes
-  of ram to buffer the image.
+  Draw JPG file on the display at the given x and y coordinates as the upper
+  left corner of the image. There memory required to decode and display a JPG
+  can be considerable as a full screen 320x240 JPG would require at least 3100
+  bytes for the working area + 320x240x2 bytes of ram to buffer the image. Jpg
+  images that would require a buffer larger than available memory can be drawn
+  by passing SLOW for method. The SLOW method will draw the image a piece at a
+  time using the Minimum Coded Unit (MCU, typically 8x8 pixels).
 
 - `ILI9342C.bitmap(bitmap, x , y)`
 
   Draw bitmap using the specified x, y coordinates as the upper-left corner of
   the of the bitmap.  See the imgtobitmap.py file in the utils folder for a
-  python utility to create compatible bitmaps from image files using the
-  Pillow Python Imaging Library.
+  python utility to create compatible bitmaps from image files using the Pillow
+  Python Imaging Library.
 
 - `ILI9342C.width()`
 
