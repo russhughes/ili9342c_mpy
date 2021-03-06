@@ -19,6 +19,7 @@ import t1,t2,t3,t4,t5
 TOASTERS = [t1, t2, t3, t4]
 TOAST = [t5]
 
+
 class toast():
     '''
     toast class to keep track of a sprites locaton and step
@@ -29,11 +30,11 @@ class toast():
         self.x = x
         self.y = y
         self.step = random.randint(0, self.steps-1)
-        self.speed = random.randint(2,5)
+        self.speed = random.randint(2, 5)
 
     def move(self):
         if self.x <= 0:
-            self.speed = random.randint(2,5)
+            self.speed = random.randint(2, 5)
             self.x = 320-64
 
         self.step += 1
@@ -49,7 +50,7 @@ def main():
         # initialize display
 
         tft = ili9342c.ILI9342C(
-            SPI(2, baudrate=60000000, polarity=1, phase=1, sck=Pin(18), mosi=Pin(23)),
+            SPI(2, baudrate=60000000, sck=Pin(18), mosi=Pin(23)),
             320,
             240,
             reset=Pin(33, Pin.OUT),
@@ -67,7 +68,7 @@ def main():
         sprites = [
             toast(TOASTERS, 320-64, 0),
             toast(TOAST, 320-64*2, 80),
-            toast(TOASTERS,320-64*4, 160)
+            toast(TOASTERS, 320-64*4, 160)
         ]
 
         # move and draw sprites

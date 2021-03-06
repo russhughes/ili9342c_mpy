@@ -25,9 +25,7 @@ This driver supports 320x240 displays.
 
 ## Pre-compiled MicroPython firmware
 
-The firmware directory contains pre-compiled MicroPython v1.13 ESP32 GENERIC
-firmware.bin with the ILI9342C C driver and frozen python font files compiled
-with ESP-IDF 4
+The firmware directory contains MicroPython v1.14 firmware.bin files with the ILI9342C C driver and frozen python font files compiled with ESP-IDF 4.
 
 
 ## Thanks go out to:
@@ -64,9 +62,6 @@ driver source code.
     $ make USER_C_MODULES=../../../ili9342c_mpy/ all
 
 
-If you have other user modules, copy the ILI9342C_driver/ILI9342C to
-the user modules directory
-
 Upload the resulting firmware to your device using the esptool.py program.
 (See
 [MicroPython docs](http://docs.micropython.org/en/latest/esp8266/tutorial/intro.html#deploying-the-firmware)
@@ -75,9 +70,7 @@ for more info)
 
 ## Examples
 
-This module was (barely) tested on M5Stack Core and should run on other ESP32
-devices that are able run GENERIC MicroPython Firmware. See the examples folder
-for sample programs.
+This module was tested on M5Stack Core and M5Stack Core 2 devices and should run on other ESP32 devices that are able run GENERIC MicroPython Firmware. See the examples folder for sample programs.
 
     # ESP32
 

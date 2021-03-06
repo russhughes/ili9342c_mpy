@@ -117,7 +117,13 @@ def main():
         # initialize display
 
         tft = ili9342c.ILI9342C(
-            SPI(2, baudrate=40000000, polarity=1, phase=1, sck=Pin(18), mosi=Pin(23)),
+            SPI(
+                2,
+                baudrate=60000000,
+                polarity=1,
+                phase=1,
+                sck=Pin(18),
+                mosi=Pin(23)),
             320,
             240,
             reset=Pin(33, Pin.OUT),

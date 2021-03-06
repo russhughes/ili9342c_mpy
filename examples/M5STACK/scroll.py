@@ -14,6 +14,7 @@ from machine import Pin, SPI
 import ili9342c
 import vga1_bold_16x16 as font
 
+
 def cycle(p):
     try:
         len(p)
@@ -26,9 +27,10 @@ def cycle(p):
     while p:
         yield from p
 
+
 def main():
     tft = ili9342c.ILI9342C(
-        SPI(2, baudrate=30000000, polarity=1, phase=1, sck=Pin(18), mosi=Pin(23)),
+        SPI(2, baudrate=60000000, sck=Pin(18), mosi=Pin(23)),
         320,
         240,
         reset=Pin(33, Pin.OUT),
