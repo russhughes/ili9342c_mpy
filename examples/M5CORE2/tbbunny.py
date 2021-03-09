@@ -41,7 +41,6 @@ def main():
             spi,
             320,
             240,
-            reset=Pin(33, Pin.OUT),
             cs=Pin(5, Pin.OUT),
             dc=Pin(15, Pin.OUT),
             rotation=0,
