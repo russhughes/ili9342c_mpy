@@ -523,7 +523,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_draw(size_t n_args, const mp_obj_t *args) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_draw_obj, 6, 7, ili9342c_ILI9342C_draw);
 
 
-STATIC uint16_t bs_bit		= 0;
+STATIC uint32_t bs_bit		= 0;
 uint8_t *		bitmap_data = NULL;
 
 uint8_t get_color(uint8_t bpp) {
@@ -562,12 +562,12 @@ STATIC mp_obj_t ili9342c_ILI9342C_bitmap(size_t n_args, const mp_obj_t *args) {
 	mp_get_buffer_raise(bitmap_data_buff, &bufinfo, MP_BUFFER_READ);
 	bitmap_data = bufinfo.buf;
 
-	uint16_t buf_size = width * height * 2;
+	uint32_t buf_size = width * height * 2;
 	if (self->buffer_size == 0) {
 		self->i2c_buffer = m_malloc(buf_size);
 	}
 
-	uint16_t ofs = 0;
+	uint32_t ofs = 0;
 	bs_bit		 = 0;
 
 	for (int yy = 0; yy < height; yy++) {
