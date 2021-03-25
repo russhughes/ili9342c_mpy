@@ -178,12 +178,29 @@ This driver supports only 16bit colors in RGB565 notation.
   by passing SLOW for method. The SLOW method will draw the image a piece at a
   time using the Minimum Coded Unit (MCU, typically 8x8 pixels).
 
-- `ILI9342C.bitmap(bitmap, x , y)`
+- `ILI9342C.bitmap(bitmap, x , y [, index])`
 
   Draw bitmap using the specified x, y coordinates as the upper-left corner of
-  the of the bitmap.  See the imgtobitmap.py file in the utils folder for a
-  python utility to create compatible bitmaps from image files using the Pillow
-  Python Imaging Library.
+  the of the bitmap. The optional index parameter provides a method to select
+  from multiple bitmaps contained a bitmap module. The index is used to
+  calculate the offset to the beginning of the desired bitmap using the modules
+  HEIGHT, WIDTH and BPP values.
+
+  ### Bitmap Utilities in the utils folder
+
+  `imgtobitmap.py` creates compatible bitmap modules from image files using the
+  Pillow Python Imaging Library.
+
+  `monofont2bitmap.py` creates compatible bitmap modules from Monospaced True
+  Type fonts. See the `inconsolata_16.py`, `inconsolata_32.py` and
+  `inconsolata_64.py` files in the `examples/lib` folder for sample modules and
+  the mono_font.py program for an example on how to use the modules.  The
+  character sizes, bit per pixel, foreground, background colors and the
+  characters to include as bitmaps may be specified as parameters. Use the -h
+  option for details. Bits per pixel settings larger than one may be used to
+  create antialiased characters at the expense of memory use.  If you specify
+  a buffer_size during the display initialization it must be large enough to
+  hold the one character (HEIGHT * WIDTH * 2).
 
 - `ILI9342C.width()`
 
