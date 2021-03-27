@@ -194,7 +194,7 @@ This driver supports only 16bit colors in RGB565 notation.
   `monofont2bitmap.py` creates compatible bitmap modules from Monospaced True
   Type fonts. See the `inconsolata_16.py`, `inconsolata_32.py` and
   `inconsolata_64.py` files in the `examples/lib` folder for sample modules and
-  the mono_font.py program for an example on how to use the modules.  The
+  the `mono_font.py` program for an example on how to use the modules.  The
   character sizes, bit per pixel, foreground, background colors and the
   characters to include as bitmaps may be specified as parameters. Use the -h
   option for details. Bits per pixel settings larger than one may be used to
