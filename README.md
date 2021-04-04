@@ -159,6 +159,16 @@ This driver supports only 16bit colors in RGB565 notation.
   defaults to `BLACK`.  See the README.md in the fonts directory for example
   fonts.
 
+- `ILI9342C.write(bitap_font, s, x, y[, fg, bg])`
+
+  Write text to the display using the specified proportional bitmap font with the
+  coordinates as the upper-left corner of the text. The foreground and
+  background colors of the text can be set by the optional arguments fg and bg,
+  otherwise the foreground color defaults to `WHITE` and the background color
+  defaults to `BLACK`.  See the README.md in the fonts directory for example
+  fonts. Returns the width of the string as printed in pixels.
+
+
 - `ILI9342C.draw(vector_font, s, x, y[, fg, bg])`
 
   Draw text to the display using the specified hershey vector font with the

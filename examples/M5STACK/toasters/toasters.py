@@ -41,16 +41,19 @@ class toast():
         self.step %= self.steps
         self.x -= self.speed
 
+
 def main():
     '''
     Draw and move sprite
     '''
     try:
 
+        spi = SPI(2, baudrate=60000000, sck=Pin(18), mosi=Pin(23))
+
         # initialize display
 
         tft = ili9342c.ILI9342C(
-            SPI(2, baudrate=60000000, sck=Pin(18), mosi=Pin(23)),
+            spi,
             320,
             240,
             reset=Pin(33, Pin.OUT),
@@ -68,8 +71,7 @@ def main():
         sprites = [
             toast(TOASTERS, 320-64, 0),
             toast(TOAST, 320-64*2, 80),
-            toast(TOASTERS, 320-64*4, 160)
-        ]
+            toast(TOASTERS, 320-64*4, 160)]
 
         # move and draw sprites
         while True:
@@ -100,5 +102,6 @@ def main():
         # shutdown spi
         if 'spi' in locals():
             spi.deinit()
+
 
 main()
