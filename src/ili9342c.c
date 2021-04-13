@@ -848,21 +848,40 @@ STATIC void set_rotation(ili9342c_ILI9342C_obj_t *self) {
 		madctl_value |= ILI9342C_MADCTL_MV | ILI9342C_MADCTL_MY;
 		self->width	 = self->display_height;
 		self->height = self->display_width;
+	} else if (self->rotation == 4) { // Portrait Mirrored
+		madctl_value |= ILI9342C_MADCTL_MX;
+		self->width	 = self->display_width;
+		self->height = self->display_height;
+	} else if (self->rotation == 5) { // Landscape Mirrored
+		madctl_value |=  ILI9342C_MADCTL_MV;
+		self->width	 = self->display_height;
+		self->height = self->display_width;
+	} else if (self->rotation == 6) { // Inverted Portrait Mirrored
+		madctl_value |= ILI9342C_MADCTL_MY;
+		self->width	 = self->display_width;
+		self->height = self->display_height;
+	} else if (self->rotation == 7) { // Inverted Landscape Mirrored
+		madctl_value |= ILI9342C_MADCTL_MX | ILI9342C_MADCTL_MY | ILI9342C_MADCTL_MV;
+		self->width	 = self->display_height;
+		self->height = self->display_width;
 	}
+
 	const uint8_t madctl[] = {madctl_value};
 	write_cmd(self, ILI9342C_MADCTL, madctl, 1);
 }
 
+
 STATIC mp_obj_t ili9342c_ILI9342C_rotation(mp_obj_t self_in, mp_obj_t value) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
-	mp_int_t rotation = mp_obj_get_int(value) % 4;
+	mp_int_t rotation = mp_obj_get_int(value) % 8;
 	self->rotation	  = rotation;
 	set_rotation(self);
 	return mp_const_none;
 }
 
 MP_DEFINE_CONST_FUN_OBJ_2(ili9342c_ILI9342C_rotation_obj, ili9342c_ILI9342C_rotation);
+
 
 STATIC mp_obj_t ili9342c_ILI9342C_width(mp_obj_t self_in) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -1296,7 +1315,7 @@ mp_obj_t ili9342c_ILI9342C_make_new(const mp_obj_type_t *type, size_t n_args, si
 	self->width			   = args[ARG_width].u_int;
 	self->display_height   = args[ARG_height].u_int;
 	self->height		   = args[ARG_height].u_int;
-	self->rotation		   = args[ARG_rotation].u_int % 4;
+	self->rotation		   = args[ARG_rotation].u_int % 8;
 	self->buffer_size	   = args[ARG_buffer_size].u_int;
 
 	if (self->buffer_size) {

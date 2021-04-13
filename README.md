@@ -104,11 +104,23 @@ This module was tested on M5Stack Core and M5Stack Core 2 devices and should run
         `dc` dc pin
         `cs` cs pin
         `backlight` backlight pin
-        `rotation` 0-0 degrees, 1-90 degrees, 2-180 degrees, 3-270 degrees
+        `rotation`
         `buffer_size` 0= buffer dynamically allocated and freed as needed.
 
-    If buffer_size is specified it must be large enough to contain the largest
-    bitmap and/or JPG used (Rows * Columns *2 bytes).
+        Rotation | Orientation
+        -------- | --------------------
+           0     | 0 degrees
+           1     | 90 degrees
+           2     | 180 degrees
+           3     | 270 degrees
+           4     | 0 degrees mirrored
+           5     | 90 degrees mirrored
+           6     | 180 degrees mirrored
+           7     | 270 degrees mirrored
+
+
+        If buffer_size is specified it must be large enough to contain the largest
+        bitmap and/or JPG used (Rows * Columns *2 bytes).
 
 
 This driver supports only 16bit colors in RGB565 notation.
