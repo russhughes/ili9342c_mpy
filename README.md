@@ -240,6 +240,10 @@ This driver supports only 16bit colors in RGB565 notation.
   (0 degrees), 1-Landscape (90 degrees), 2-Inverse Portrait (180 degrees),
   3-Inverse Landscape (270 degrees)
 
+  Rotations 4-7 are mirrors of Rotations 0-3 for use with ILI9341 Displays
+  4-Portrait (0 degrees) Mirrored, 1-Landscape (90 degrees) Mirrored, 2-Inverse
+  Portrait (180 degrees) Mirrored, 3-Inverse Landscape (270 degrees) Mirrored.
+
 
 The module exposes predefined colors:
   `BLACK`, `BLUE`, `RED`, `GREEN`, `CYAN`, `MAGENTA`, `YELLOW`, and `WHITE`
