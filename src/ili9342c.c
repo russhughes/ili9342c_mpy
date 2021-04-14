@@ -30,6 +30,8 @@
 #define __ILI9342C_VERSION__ "0.0.3"
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 #include "py/obj.h"
 #include "py/objmodule.h"
 #include "py/runtime.h"
@@ -38,8 +40,8 @@
 #include "extmod/machine_spi.h"
 
 #include "ili9342c.h"
-#include "mpfile.c"
-#include "tjpgd565.c"
+#include "mpfile.h"
+#include "tjpgd565.h"
 
 #define _swap_int16_t(a, b) \
 	{                       \
@@ -551,6 +553,42 @@ mp_obj_t dict_lookup(mp_obj_t self_in, mp_obj_t index) {
         return elem->value;
     }
 }
+
+STATIC mp_obj_t ili9342c_ILI9342C_write_len(size_t n_args, const mp_obj_t *args) {
+	mp_obj_module_t *font = MP_OBJ_TO_PTR(args[1]);
+	char single_char_s[2] = {0, 0};
+	const char *str;
+
+	if (mp_obj_is_int(args[2])) {
+		mp_int_t c = mp_obj_get_int(args[2]);
+		single_char_s[0] = c & 0xff;
+		str	= single_char_s;
+	} else {
+		str = mp_obj_str_get_str(args[2]);
+	}
+
+	mp_obj_dict_t *dict	= MP_OBJ_TO_PTR(font->globals);
+	const char 	  *map  = mp_obj_str_get_str(mp_obj_dict_get(dict, MP_OBJ_NEW_QSTR(MP_QSTR_MAP)));
+
+	mp_obj_t widths_data_buff = mp_obj_dict_get(dict, MP_OBJ_NEW_QSTR(MP_QSTR_WIDTHS));
+	mp_buffer_info_t widths_bufinfo;
+	mp_get_buffer_raise(widths_data_buff, &widths_bufinfo, MP_BUFFER_READ);
+	const uint8_t *widths_data = widths_bufinfo.buf;
+
+	uint16_t print_width = 0;
+	uint8_t chr;
+
+	while ((chr = *str++)) {
+		char *char_pointer = strchr(map, chr);
+		if (char_pointer) {
+			uint16_t char_index = char_pointer - map;
+			print_width += widths_data[char_index];
+        }
+    }
+	return mp_obj_new_int(print_width);
+}
+
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_write_len_obj, 3, 3, ili9342c_ILI9342C_write_len);
 
 
 //
@@ -1238,6 +1276,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_jpg_obj, 4, 5, ili9
 
 STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 	{MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&ili9342c_ILI9342C_write_obj)},
+	{MP_ROM_QSTR(MP_QSTR_write_len), MP_ROM_PTR(&ili9342c_ILI9342C_write_len_obj)},
 	{MP_ROM_QSTR(MP_QSTR_hard_reset), MP_ROM_PTR(&ili9342c_ILI9342C_hard_reset_obj)},
 	{MP_ROM_QSTR(MP_QSTR_soft_reset), MP_ROM_PTR(&ili9342c_ILI9342C_soft_reset_obj)},
 	{MP_ROM_QSTR(MP_QSTR_sleep_mode), MP_ROM_PTR(&ili9342c_ILI9342C_sleep_mode_obj)},

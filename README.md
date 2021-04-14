@@ -11,7 +11,7 @@
 This driver is based on [devbis' st7789_mpy driver.](https://github.com/devbis/st7789_mpy)
 I modified the original driver for one of my projects to add:
 
-- Display Rotation
+- Display Rotation and Mirroring
 - Scrolling
 - Drawing text using 8 and 16 bit wide bitmap fonts
 - Drawing text using Hershey vector fonts
@@ -25,7 +25,7 @@ This driver supports 320x240 displays.
 
 ## Pre-compiled MicroPython firmware
 
-The firmware directory contains MicroPython v1.14 firmware.bin files with the ILI9342C C driver and frozen python font files compiled with ESP-IDF 4.
+The firmware directory contains MicroPython v1.14 firmware.bin files with the ILI9342C C driver and frozen python font files compiled with ESP-IDF 4.2 using the CMake build system.
 
 
 ## Thanks go out to:
@@ -67,6 +67,35 @@ Upload the resulting firmware to your device using the esptool.py program.
 [MicroPython docs](http://docs.micropython.org/en/latest/esp8266/tutorial/intro.html#deploying-the-firmware)
 for more info)
 
+## CMake building instructions for MicroPython 1.14 and later
+
+for ESP32:
+
+    $ cd micropython/ports/esp32
+
+And then compile the module with specified USER_C_MODULES dir
+
+    $ make USER_C_MODULES=../../../../ili9342c_mpy/src/micropython.cmake all
+
+Erase the target device if this is the first time uploading this firmware
+
+    $ make USER_C_MODULES=../../../../ili9342c_mpy/src/micropython.cmake erase
+
+Upload the new firmware
+
+    $ make USER_C_MODULES=../../../../ili9342c_mpy/src/micropython.cmake deploy
+
+### Additional build parameters
+
+Additional build parameters may be specified during the build, erase and upload operations by including them after the `make` command. For example you can specify the DEBUG flag, Upload BAUD rate, alternate partition.csv file for different flash sizes and the USB serial port.
+
+      make -j 4 \
+        DEBUG=1 \
+        BOARD=M5CORE2 \
+        BAUD=3000000 \
+        PART_SRC=partitions-16MiB.csv \
+        PORT=/dev/tty.SLAB_USBtoUART \
+        USER_C_MODULES=../../../../ili9342c_mpy/src/micropython.cmake all
 
 ## Examples
 
@@ -173,13 +202,24 @@ This driver supports only 16bit colors in RGB565 notation.
 
 - `ILI9342C.write(bitap_font, s, x, y[, fg, bg])`
 
-  Write text to the display using the specified proportional bitmap font with the
-  coordinates as the upper-left corner of the text. The foreground and
-  background colors of the text can be set by the optional arguments fg and bg,
-  otherwise the foreground color defaults to `WHITE` and the background color
-  defaults to `BLACK`.  See the README.md in the fonts directory for example
-  fonts. Returns the width of the string as printed in pixels.
+  Write text to the display using the specified proportional or Monospace bitmap
+  font module with the coordinates as the upper-left corner of the text. The
+  foreground and background colors of the text can be set by the optional
+  arguments fg and bg, otherwise the foreground color defaults to `WHITE` and
+  the background color defaults to `BLACK`.  See the `README.md` in the
+  `truetype/fonts` directory for example fonts. Returns the width of the string
+  as printed in pixels.
 
+  The `font2bitmap` utility creates compatible 1 bit per pixel bitmap modules
+  from Proportional or Monospaced True Type fonts. The character size,
+  foreground, background colors and the characters to include in the bitmap
+  module may be specified as parameters. Use the -h option for details. If you
+  specify a buffer_size during the display initialization it must be large
+  enough to hold the widest character (HEIGHT * MAX_WIDTH * 2).
+
+- `ILI9342C.write_len(bitap_font, s)`
+
+  Returns the width of the string in pixels if printed in the specified font.
 
 - `ILI9342C.draw(vector_font, s, x, y[, fg, bg])`
 

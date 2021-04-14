@@ -31,8 +31,6 @@
 
 #include <string.h>
 
-#if MICROPY_PY_FILE_LIKE
-
 STATIC const mp_obj_type_t mp_file_type;
 STATIC mp_obj_t mp___del__(mp_obj_t self);
 
@@ -121,5 +119,3 @@ STATIC const mp_obj_type_t mp_file_type = {
     .print = mp_file_print,
     .locals_dict = (mp_obj_dict_t *)&mp_file_locals_dict,
 };
-
-#endif // MICROPY_PY_FILE_LIKE
