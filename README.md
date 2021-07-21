@@ -25,7 +25,7 @@ This driver supports 320x240 displays.
 
 ## Pre-compiled MicroPython firmware
 
-The firmware directory contains MicroPython v1.14 firmware.bin files with the ILI9342C C driver and frozen python font files compiled with ESP-IDF 4.2 using the CMake build system.
+The firmware directory contains MicroPython v1.16 firmware.bin files with the ILI9342C C driver and frozen python font files compiled with ESP-IDF 4.2 using the CMake build system.
 
 
 ## Thanks go out to:

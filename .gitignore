@@ -34,3 +34,4 @@ sphinx/build
 *.o
 *.P
 upload.mpf
+.history
