@@ -116,7 +116,11 @@ STATIC void ili9342c_ILI9342C_print(const mp_print_t *print, mp_obj_t self_in, m
 }
 
 STATIC void write_spi(mp_obj_base_t *spi_obj, const uint8_t *buf, int len) {
-	((mp_machine_spi_p_t *) spi_obj->type->protocol)->transfer(spi_obj, len, buf, NULL);
+#if MPY_SPARSE_TYPES
+	((mp_machine_spi_p_t *) MP_OBJ_TYPE_GET_SLOT(spi_obj->type, protocol))->transfer(spi_obj, len, buf, NULL);
+#else
+   	((mp_machine_spi_p_t *) MP_OBJ_TYPE_GET_SLOT(spi_obj->type, protocol))->transfer(spi_obj, len, buf, NULL);
+#endif
 }
 
 STATIC void write_cmd(ili9342c_ILI9342C_obj_t *self, uint8_t cmd, const uint8_t *data, int len) {
@@ -1306,6 +1310,16 @@ STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 STATIC MP_DEFINE_CONST_DICT(ili9342c_ILI9342C_locals_dict, ili9342c_ILI9342C_locals_dict_table);
 /* methods end */
 
+#if MPY_SPARSE_TYPES
+MP_DEFINE_CONST_OBJ_TYPE(
+    ili9342c_ILI9342C_type,
+    MP_QSTR_ILI9342C,
+    MP_TYPE_FLAG_NONE,
+	print,	     ili9342c_ILI9342C_print,
+	make_new,    ili9342c_ILI9342C_make_new,
+	locals_dict, (mp_obj_dict_t *) &ili9342c_ILI9342C_locals_dict
+    );
+#else
 const mp_obj_type_t ili9342c_ILI9342C_type = {
 	{&mp_type_type},
 	.name		 = MP_QSTR_ILI9342C,
@@ -1313,6 +1327,7 @@ const mp_obj_type_t ili9342c_ILI9342C_type = {
 	.make_new	 = ili9342c_ILI9342C_make_new,
 	.locals_dict = (mp_obj_dict_t *) &ili9342c_ILI9342C_locals_dict,
 };
+#endif
 
 mp_obj_t ili9342c_ILI9342C_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 	enum {
@@ -1411,4 +1426,4 @@ const mp_obj_module_t mp_module_ili9342c = {
 	.globals = (mp_obj_dict_t *) &mp_module_ili9342c_globals,
 };
 
-MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c, MODULE_ILI9342C_ENABLED);
+MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c);

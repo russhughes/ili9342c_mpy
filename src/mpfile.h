@@ -51,5 +51,10 @@ off_t mp_seek(mp_file_t *file, off_t offset, int whence);
 off_t mp_tell(mp_file_t *file);
 void mp_close(mp_file_t *file);
 
+#if MICROPY_VERSION >= (1<<16 | 19<<8 | 1) // 1.19.1
+#define MPY_SPARSE_TYPES 1
+#else
+#define MPY_SPARSE_TYPES 0
+#endif
 
 #endif // __MICROPY_INCLUDED_PY_MPFILE_H__
