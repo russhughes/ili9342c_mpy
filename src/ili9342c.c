@@ -116,7 +116,11 @@ STATIC void ili9342c_ILI9342C_print(const mp_print_t *print, mp_obj_t self_in, m
 }
 
 STATIC void write_spi(mp_obj_base_t *spi_obj, const uint8_t *buf, int len) {
-	((mp_machine_spi_p_t *) spi_obj->type->protocol)->transfer(spi_obj, len, buf, NULL);
+#if MPY_SPARSE_TYPES
+	((mp_machine_spi_p_t *) MP_OBJ_TYPE_GET_SLOT(spi_obj->type, protocol))->transfer(spi_obj, len, buf, NULL);
+#else
+   	((mp_machine_spi_p_t *) MP_OBJ_TYPE_GET_SLOT(spi_obj->type, protocol))->transfer(spi_obj, len, buf, NULL);
+#endif
 }
 
 STATIC void write_cmd(ili9342c_ILI9342C_obj_t *self, uint8_t cmd, const uint8_t *data, int len) {
@@ -823,8 +827,15 @@ STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 	else
 		bg_color = _swap_bytes(BLACK);
 
+	mp_int_t scale;
+
+	if (n_args > 7)
+		scale = mp_obj_get_int(args[7]);
+	else
+		scale = 1;
+
 	uint8_t	 wide	  = width / 8;
-	uint16_t buf_size = width * height * 2;
+	uint16_t buf_size = scale * scale * width * height * 2;
 
 	if (self->buffer_size == 0) {
 		self->i2c_buffer = m_malloc(buf_size);
@@ -839,25 +850,29 @@ STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 				for (uint8_t line = 0; line < height; line++) {
 					for (uint8_t line_byte = 0; line_byte < wide; line_byte++) {
 						uint8_t chr_data = font_data[chr_idx];
-						for (uint8_t bit = 8; bit; bit--) {
-							if (chr_data >> (bit - 1) & 1)
-								self->i2c_buffer[buf_idx] = fg_color;
-							else
-								self->i2c_buffer[buf_idx] = bg_color;
-							buf_idx++;
+						for (uint8_t sy=0;sy<scale;sy++) {
+							for (uint8_t bit = 8; bit; bit--) {
+								for (uint8_t sx=0;sx<scale;sx++) {
+									if (chr_data >> (bit - 1) & 1)
+										self->i2c_buffer[buf_idx] = fg_color;
+									else
+										self->i2c_buffer[buf_idx] = bg_color;
+									buf_idx++;
+								}
+							}
 						}
 						chr_idx++;
 					}
 				}
-				uint16_t x1 = x0 + width - 1;
+				uint16_t x1 = x0 + width*scale - 1;
 				if (x1 < self->width) {
-					set_window(self, x0, y0, x1, y0 + height - 1);
+					set_window(self, x0, y0, x1, y0 + height*scale - 1);
 					DC_HIGH();
 					CS_LOW();
 					write_spi(self->spi_obj, (uint8_t *) self->i2c_buffer, buf_size);
 					CS_HIGH();
 				}
-				x0 += width;
+				x0 += width*scale;
 			}
 		}
 		if (self->buffer_size == 0) {
@@ -866,7 +881,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 	}
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_text_obj, 5, 7, ili9342c_ILI9342C_text);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_text_obj, 5, 8, ili9342c_ILI9342C_text);
 
 STATIC void set_rotation(ili9342c_ILI9342C_obj_t *self) {
 	uint8_t madctl_value = ILI9342C_MADCTL_RGB;
@@ -1306,6 +1321,16 @@ STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 STATIC MP_DEFINE_CONST_DICT(ili9342c_ILI9342C_locals_dict, ili9342c_ILI9342C_locals_dict_table);
 /* methods end */
 
+#if MPY_SPARSE_TYPES
+MP_DEFINE_CONST_OBJ_TYPE(
+    ili9342c_ILI9342C_type,
+    MP_QSTR_ILI9342C,
+    MP_TYPE_FLAG_NONE,
+	print,	     ili9342c_ILI9342C_print,
+	make_new,    ili9342c_ILI9342C_make_new,
+	locals_dict, (mp_obj_dict_t *) &ili9342c_ILI9342C_locals_dict
+    );
+#else
 const mp_obj_type_t ili9342c_ILI9342C_type = {
 	{&mp_type_type},
 	.name		 = MP_QSTR_ILI9342C,
@@ -1313,6 +1338,7 @@ const mp_obj_type_t ili9342c_ILI9342C_type = {
 	.make_new	 = ili9342c_ILI9342C_make_new,
 	.locals_dict = (mp_obj_dict_t *) &ili9342c_ILI9342C_locals_dict,
 };
+#endif
 
 mp_obj_t ili9342c_ILI9342C_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 	enum {
@@ -1411,4 +1437,4 @@ const mp_obj_module_t mp_module_ili9342c = {
 	.globals = (mp_obj_dict_t *) &mp_module_ili9342c_globals,
 };
 
-MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c, MODULE_ILI9342C_ENABLED);
+MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c);
