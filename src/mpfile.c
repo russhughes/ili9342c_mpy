@@ -101,9 +101,7 @@ STATIC void mp_file_print(const mp_print_t *print, mp_obj_t self, mp_print_kind_
 }
 
 STATIC mp_obj_t mp___del__(mp_obj_t self) {
-    printf("<");
     mp_close(MP_OBJ_TO_PTR(self));
-    printf(">");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp___del___obj, mp___del__);
