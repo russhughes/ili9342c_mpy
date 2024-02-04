@@ -37,7 +37,13 @@
 #include "py/runtime.h"
 #include "py/builtin.h"
 #include "py/mphal.h"
+
+// Fix for MicroPython > 1.21 https://github.com/ricksorensen
+#if MICROPY_VERSION_MAJOR >= 1 && MICROPY_VERSION_MINOR > 21
+#include "extmod/modmachine.h"
+#else
 #include "extmod/machine_spi.h"
+#endif
 
 #include "ili9342c.h"
 #include "mpfile.h"
@@ -113,10 +119,16 @@ STATIC void ili9342c_ILI9342C_print(const mp_print_t *print, mp_obj_t self_in, m
 	(void) kind;
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 	(void) self;
+    mp_printf(print, "<ILI9342C  width=%u, height=%u, spi=%p>", self->width, self->height, self->spi_obj);
 }
 
 STATIC void write_spi(mp_obj_base_t *spi_obj, const uint8_t *buf, int len) {
-	((mp_machine_spi_p_t *) spi_obj->type->protocol)->transfer(spi_obj, len, buf, NULL);
+    #ifdef MP_OBJ_TYPE_GET_SLOT
+    mp_machine_spi_p_t *spi_p = (mp_machine_spi_p_t *)MP_OBJ_TYPE_GET_SLOT(spi_obj->type, protocol);
+    #else
+    mp_machine_spi_p_t *spi_p = (mp_machine_spi_p_t *)spi_obj->type->protocol;
+    #endif
+    spi_p->transfer(spi_obj, len, buf, NULL);
 }
 
 STATIC void write_cmd(ili9342c_ILI9342C_obj_t *self, uint8_t cmd, const uint8_t *data, int len) {
@@ -1173,6 +1185,11 @@ static int out_slow (       // 1:Ok, 0:Aborted
 	uint16_t wx2 = (rect->right-rect->left+1) *2;
 	uint16_t h = rect->bottom-rect->top+1;
 
+    // if the rect is outside of the screen then return
+    if ((rect->bottom + jd->y_offs > self->height)  || (rect->right + jd->x_offs > self->width)) {
+        return 1;
+    }
+
     // Copy the decompressed RGB rectanglar to the frame buffer (assuming RGB565)
     src = (uint8_t*)bitmap;
     dst = dev->fbuf;    							// Left-top of destination rectangular
@@ -1183,7 +1200,13 @@ static int out_slow (       // 1:Ok, 0:Aborted
 
 	// blit buffer to display
 
-	set_window(self, rect->left, rect->top, rect->right, rect->bottom);
+    set_window(
+        self,
+        rect->left + jd->x_offs,
+        rect->top + jd->y_offs,
+        rect->right + jd->x_offs,
+        rect->bottom + jd->y_offs);
+
 	DC_HIGH();
 	CS_LOW();
 	write_spi(self->spi_obj, (uint8_t *) dev->fbuf, wx2 * h);
@@ -1228,6 +1251,8 @@ STATIC mp_obj_t ili9342c_ILI9342C_jpg(size_t n_args, const mp_obj_t *args) {
 			} else {
 				bufsize = 2 * jdec.msx*8 * jdec.msy*8;
 				outfunc = out_slow;
+                jdec.x_offs = x;
+                jdec.y_offs = y;
 			}
 			if (self->buffer_size && bufsize > self->buffer_size)
 				mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("buffer too small"));
@@ -1306,6 +1331,18 @@ STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 STATIC MP_DEFINE_CONST_DICT(ili9342c_ILI9342C_locals_dict, ili9342c_ILI9342C_locals_dict_table);
 /* methods end */
 
+#if MICROPY_OBJ_TYPE_REPR == MICROPY_OBJ_TYPE_REPR_SLOT_INDEX
+
+MP_DEFINE_CONST_OBJ_TYPE(
+    ili9342c_ILI9342C_type,
+    MP_QSTR_ILI9342C,
+    MP_TYPE_FLAG_NONE,
+    print, ili9342c_ILI9342C_print,
+    make_new, ili9342c_ILI9342C_make_new,
+    locals_dict, &ili9342c_ILI9342C_locals_dict);
+
+#else
+
 const mp_obj_type_t ili9342c_ILI9342C_type = {
 	{&mp_type_type},
 	.name		 = MP_QSTR_ILI9342C,
@@ -1313,6 +1350,8 @@ const mp_obj_type_t ili9342c_ILI9342C_type = {
 	.make_new	 = ili9342c_ILI9342C_make_new,
 	.locals_dict = (mp_obj_dict_t *) &ili9342c_ILI9342C_locals_dict,
 };
+
+#endif
 
 mp_obj_t ili9342c_ILI9342C_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
 	enum {
@@ -1411,4 +1450,8 @@ const mp_obj_module_t mp_module_ili9342c = {
 	.globals = (mp_obj_dict_t *) &mp_module_ili9342c_globals,
 };
 
+#if MICROPY_VERSION >= 0x011300                     // MicroPython 1.19 or later
+MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c);
+#else
 MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c, MODULE_ILI9342C_ENABLED);
+#endif
