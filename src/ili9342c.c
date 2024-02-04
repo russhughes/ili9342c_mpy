@@ -27,12 +27,13 @@
  * THE SOFTWARE.
  */
 
-#define __ILI9342C_VERSION__ "0.0.3"
+#define __ILI9342C_VERSION__ "0.0.4"
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include "py/obj.h"
+#include "py/objstr.h"
 #include "py/objmodule.h"
 #include "py/runtime.h"
 #include "py/builtin.h"
@@ -45,8 +46,8 @@
 #include "extmod/machine_spi.h"
 #endif
 
-#include "ili9342c.h"
 #include "mpfile.h"
+#include "ili9342c.h"
 #include "tjpgd565.h"
 
 #define _swap_int16_t(a, b) \
@@ -1234,7 +1235,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_jpg(size_t n_args, const mp_obj_t *args) {
 
     JRESULT res;                        // Result code of TJpgDec API
     JDEC jdec;                          // Decompression object
-    void *work = (void*)malloc(3100);   // Pointer to the work area
+    void *work = malloc(3100);          // Pointer to the work area
     IODEV devid;                        // User defined device identifier
     size_t bufsize;
 
@@ -1331,7 +1332,7 @@ STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 STATIC MP_DEFINE_CONST_DICT(ili9342c_ILI9342C_locals_dict, ili9342c_ILI9342C_locals_dict_table);
 /* methods end */
 
-#if MICROPY_OBJ_TYPE_REPR == MICROPY_OBJ_TYPE_REPR_SLOT_INDEX
+#ifdef MP_OBJ_TYPE_GET_SLOT
 
 MP_DEFINE_CONST_OBJ_TYPE(
     ili9342c_ILI9342C_type,
@@ -1339,7 +1340,7 @@ MP_DEFINE_CONST_OBJ_TYPE(
     MP_TYPE_FLAG_NONE,
     print, ili9342c_ILI9342C_print,
     make_new, ili9342c_ILI9342C_make_new,
-    locals_dict, &ili9342c_ILI9342C_locals_dict);
+    locals_dict, (mp_obj_dict_t *)&ili9342c_ILI9342C_locals_dict);
 
 #else
 
@@ -1450,8 +1451,8 @@ const mp_obj_module_t mp_module_ili9342c = {
 	.globals = (mp_obj_dict_t *) &mp_module_ili9342c_globals,
 };
 
-#if MICROPY_VERSION >= 0x011300                     // MicroPython 1.19 or later
-MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c);
+#if !defined(MICROPY_VERSION) || MICROPY_VERSION <= 70144
+MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c, MODULE_ILI9342C_ENABLE);
 #else
-MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c, MODULE_ILI9342C_ENABLED);
+MP_REGISTER_MODULE(MP_QSTR_ili9342c, mp_module_ili9342c);
 #endif
