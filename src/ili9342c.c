@@ -116,14 +116,14 @@ mp_obj_t ili9342c_ILI9342C_make_new(const mp_obj_type_t *type, size_t n_args, si
 //  methods start
 //
 
-STATIC void ili9342c_ILI9342C_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
+static void ili9342c_ILI9342C_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
 	(void) kind;
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 	(void) self;
     mp_printf(print, "<ILI9342C  width=%u, height=%u, spi=%p>", self->width, self->height, self->spi_obj);
 }
 
-STATIC void write_spi(mp_obj_base_t *spi_obj, const uint8_t *buf, int len) {
+static void write_spi(mp_obj_base_t *spi_obj, const uint8_t *buf, int len) {
     #ifdef MP_OBJ_TYPE_GET_SLOT
     mp_machine_spi_p_t *spi_p = (mp_machine_spi_p_t *)MP_OBJ_TYPE_GET_SLOT(spi_obj->type, protocol);
     #else
@@ -132,7 +132,7 @@ STATIC void write_spi(mp_obj_base_t *spi_obj, const uint8_t *buf, int len) {
     spi_p->transfer(spi_obj, len, buf, NULL);
 }
 
-STATIC void write_cmd(ili9342c_ILI9342C_obj_t *self, uint8_t cmd, const uint8_t *data, int len) {
+static void write_cmd(ili9342c_ILI9342C_obj_t *self, uint8_t cmd, const uint8_t *data, int len) {
 	CS_LOW()
 	if (cmd) {
 		DC_LOW();
@@ -145,7 +145,7 @@ STATIC void write_cmd(ili9342c_ILI9342C_obj_t *self, uint8_t cmd, const uint8_t 
 	CS_HIGH()
 }
 
-STATIC void set_window(ili9342c_ILI9342C_obj_t *self, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
+static void set_window(ili9342c_ILI9342C_obj_t *self, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 	if (x0 > x1 || x1 >= self->width) {
 		return;
 	}
@@ -159,7 +159,7 @@ STATIC void set_window(ili9342c_ILI9342C_obj_t *self, uint16_t x0, uint16_t y0, 
 	write_cmd(self, ILI9342C_RAMWR, NULL, 0);
 }
 
-STATIC void fill_color_buffer(mp_obj_base_t *spi_obj, uint16_t color, int length) {
+static void fill_color_buffer(mp_obj_base_t *spi_obj, uint16_t color, int length) {
 	const int buffer_pixel_size = 128;
 	int		  chunks			= length / buffer_pixel_size;
 	int		  rest				= length % buffer_pixel_size;
@@ -180,7 +180,7 @@ STATIC void fill_color_buffer(mp_obj_base_t *spi_obj, uint16_t color, int length
 	}
 }
 
-STATIC void draw_pixel(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, uint16_t color) {
+static void draw_pixel(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, uint16_t color) {
 	uint8_t hi = color >> 8, lo = color;
 	set_window(self, x, y, x, y);
 	DC_HIGH();
@@ -190,7 +190,7 @@ STATIC void draw_pixel(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, ui
 	CS_HIGH();
 }
 
-STATIC void fast_hline(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, uint16_t _w, uint16_t color) {
+static void fast_hline(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, uint16_t _w, uint16_t color) {
 	int w;
 
 	if (x + _w > self->width)
@@ -207,7 +207,7 @@ STATIC void fast_hline(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, ui
 	}
 }
 
-STATIC void fast_vline(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, uint16_t w, uint16_t color) {
+static void fast_vline(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, uint16_t w, uint16_t color) {
 	set_window(self, x, y, x, y + w - 1);
 	DC_HIGH();
 	CS_LOW();
@@ -215,7 +215,7 @@ STATIC void fast_vline(ili9342c_ILI9342C_obj_t *self, uint16_t x, uint16_t y, ui
 	CS_HIGH();
 }
 
-STATIC mp_obj_t ili9342c_ILI9342C_hard_reset(mp_obj_t self_in) {
+static mp_obj_t ili9342c_ILI9342C_hard_reset(mp_obj_t self_in) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
 	CS_LOW();
@@ -229,7 +229,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_hard_reset(mp_obj_t self_in) {
 	return mp_const_none;
 }
 
-STATIC mp_obj_t ili9342c_ILI9342C_soft_reset(mp_obj_t self_in) {
+static mp_obj_t ili9342c_ILI9342C_soft_reset(mp_obj_t self_in) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
 	write_cmd(self, ILI9342C_SWRESET, NULL, 0);
@@ -238,7 +238,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_soft_reset(mp_obj_t self_in) {
 }
 
 /*
-STATIC mp_obj_t ili9342c_ILI9342C_write(mp_obj_t self_in, mp_obj_t command, mp_obj_t data) {
+static mp_obj_t ili9342c_ILI9342C_write(mp_obj_t self_in, mp_obj_t command, mp_obj_t data) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 	mp_buffer_info_t		 src;
 
@@ -257,7 +257,7 @@ MP_DEFINE_CONST_FUN_OBJ_3(ili9342c_ILI9342C_write_obj, ili9342c_ILI9342C_write);
 MP_DEFINE_CONST_FUN_OBJ_1(ili9342c_ILI9342C_hard_reset_obj, ili9342c_ILI9342C_hard_reset);
 MP_DEFINE_CONST_FUN_OBJ_1(ili9342c_ILI9342C_soft_reset_obj, ili9342c_ILI9342C_soft_reset);
 
-STATIC mp_obj_t ili9342c_ILI9342C_sleep_mode(mp_obj_t self_in, mp_obj_t value) {
+static mp_obj_t ili9342c_ILI9342C_sleep_mode(mp_obj_t self_in, mp_obj_t value) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 	if (mp_obj_is_true(value)) {
 		write_cmd(self, ILI9342C_SLPIN, NULL, 0);
@@ -268,7 +268,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_sleep_mode(mp_obj_t self_in, mp_obj_t value) {
 }
 MP_DEFINE_CONST_FUN_OBJ_2(ili9342c_ILI9342C_sleep_mode_obj, ili9342c_ILI9342C_sleep_mode);
 
-STATIC mp_obj_t ili9342c_ILI9342C_set_window(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_set_window(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_int_t x0 = mp_obj_get_int(args[1]);
@@ -279,8 +279,8 @@ STATIC mp_obj_t ili9342c_ILI9342C_set_window(size_t n_args, const mp_obj_t *args
 	set_window(self, x0, y0, x1, y1);
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_set_window_obj, 5, 5, ili9342c_ILI9342C_set_window);
-STATIC mp_obj_t ili9342c_ILI9342C_inversion_mode(mp_obj_t self_in, mp_obj_t value) {
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_set_window_obj, 5, 5, ili9342c_ILI9342C_set_window);
+static mp_obj_t ili9342c_ILI9342C_inversion_mode(mp_obj_t self_in, mp_obj_t value) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
 	if (mp_obj_is_true(value)) {
@@ -292,7 +292,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_inversion_mode(mp_obj_t self_in, mp_obj_t valu
 }
 MP_DEFINE_CONST_FUN_OBJ_2(ili9342c_ILI9342C_inversion_mode_obj, ili9342c_ILI9342C_inversion_mode);
 
-STATIC mp_obj_t ili9342c_ILI9342C_fill_rect(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_fill_rect(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_int_t x	   = mp_obj_get_int(args[1]);
@@ -309,9 +309,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_fill_rect(size_t n_args, const mp_obj_t *args)
 
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_fill_rect_obj, 6, 6, ili9342c_ILI9342C_fill_rect);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_fill_rect_obj, 6, 6, ili9342c_ILI9342C_fill_rect);
 
-STATIC mp_obj_t ili9342c_ILI9342C_fill(mp_obj_t self_in, mp_obj_t _color) {
+static mp_obj_t ili9342c_ILI9342C_fill(mp_obj_t self_in, mp_obj_t _color) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
 	mp_int_t color = mp_obj_get_int(_color);
@@ -324,9 +324,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_fill(mp_obj_t self_in, mp_obj_t _color) {
 
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_2(ili9342c_ILI9342C_fill_obj, ili9342c_ILI9342C_fill);
+static MP_DEFINE_CONST_FUN_OBJ_2(ili9342c_ILI9342C_fill_obj, ili9342c_ILI9342C_fill);
 
-STATIC mp_obj_t ili9342c_ILI9342C_pixel(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_pixel(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_int_t x	   = mp_obj_get_int(args[1]);
@@ -337,9 +337,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_pixel(size_t n_args, const mp_obj_t *args) {
 
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_pixel_obj, 4, 4, ili9342c_ILI9342C_pixel);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_pixel_obj, 4, 4, ili9342c_ILI9342C_pixel);
 
-STATIC void line(ili9342c_ILI9342C_obj_t *self, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t color) {
+static void line(ili9342c_ILI9342C_obj_t *self, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t color) {
 	bool steep = ABS(y1 - y0) > ABS(x1 - x0);
 	if (steep) {
 		_swap_int16_t(x0, y0);
@@ -396,7 +396,7 @@ STATIC void line(ili9342c_ILI9342C_obj_t *self, int16_t x0, int16_t y0, int16_t 
 }
 
 
-STATIC mp_obj_t ili9342c_ILI9342C_line(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_line(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_int_t x0	   = mp_obj_get_int(args[1]);
@@ -410,9 +410,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_line(size_t n_args, const mp_obj_t *args) {
 	return mp_const_none;
 }
 
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_line_obj, 6, 6, ili9342c_ILI9342C_line);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_line_obj, 6, 6, ili9342c_ILI9342C_line);
 
-STATIC mp_obj_t ili9342c_ILI9342C_blit_buffer(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_blit_buffer(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_buffer_info_t buf_info;
@@ -443,10 +443,10 @@ STATIC mp_obj_t ili9342c_ILI9342C_blit_buffer(size_t n_args, const mp_obj_t *arg
 
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_blit_buffer_obj, 6, 6, ili9342c_ILI9342C_blit_buffer);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_blit_buffer_obj, 6, 6, ili9342c_ILI9342C_blit_buffer);
 
 
-STATIC mp_obj_t ili9342c_ILI9342C_draw(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_draw(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 	char		single_char_s[] = {0, 0};
 	const char *s;
@@ -538,10 +538,10 @@ STATIC mp_obj_t ili9342c_ILI9342C_draw(size_t n_args, const mp_obj_t *args) {
 	return mp_const_none;
 }
 
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_draw_obj, 6, 7, ili9342c_ILI9342C_draw);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_draw_obj, 6, 7, ili9342c_ILI9342C_draw);
 
 
-STATIC uint32_t bs_bit		= 0;
+static uint32_t bs_bit		= 0;
 uint8_t * bitmap_data = NULL;
 
 uint8_t get_color(uint8_t bpp) {
@@ -567,7 +567,7 @@ mp_obj_t dict_lookup(mp_obj_t self_in, mp_obj_t index) {
     }
 }
 
-STATIC mp_obj_t ili9342c_ILI9342C_write_len(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_write_len(size_t n_args, const mp_obj_t *args) {
 	mp_obj_module_t *font = MP_OBJ_TO_PTR(args[1]);
 	char single_char_s[2] = {0, 0};
 	const char *str;
@@ -601,14 +601,14 @@ STATIC mp_obj_t ili9342c_ILI9342C_write_len(size_t n_args, const mp_obj_t *args)
 	return mp_obj_new_int(print_width);
 }
 
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_write_len_obj, 3, 3, ili9342c_ILI9342C_write_len);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_write_len_obj, 3, 3, ili9342c_ILI9342C_write_len);
 
 
 //
 //	write(font_module, s, x, y[, fg, bg])
 //
 
-STATIC mp_obj_t ili9342c_ILI9342C_write(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_write(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 	mp_obj_module_t *font = MP_OBJ_TO_PTR(args[1]);
 
@@ -716,10 +716,10 @@ STATIC mp_obj_t ili9342c_ILI9342C_write(size_t n_args, const mp_obj_t *args) {
 	return mp_obj_new_int(print_width);
 }
 
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_write_obj, 5, 7, ili9342c_ILI9342C_write);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_write_obj, 5, 7, ili9342c_ILI9342C_write);
 
 
-STATIC mp_obj_t ili9342c_ILI9342C_bitmap(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_bitmap(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_obj_module_t *bitmap		 = MP_OBJ_TO_PTR(args[1]);
@@ -791,9 +791,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_bitmap(size_t n_args, const mp_obj_t *args) {
 	return mp_const_none;
 }
 
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_bitmap_obj, 4, 5, ili9342c_ILI9342C_bitmap);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_bitmap_obj, 4, 5, ili9342c_ILI9342C_bitmap);
 
-STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 	char		single_char_s[2] = {0, 0};
 	const char *str;
 
@@ -879,9 +879,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_text(size_t n_args, const mp_obj_t *args) {
 	}
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_text_obj, 5, 7, ili9342c_ILI9342C_text);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_text_obj, 5, 7, ili9342c_ILI9342C_text);
 
-STATIC void set_rotation(ili9342c_ILI9342C_obj_t *self) {
+static void set_rotation(ili9342c_ILI9342C_obj_t *self) {
 	uint8_t madctl_value = ILI9342C_MADCTL_RGB;
 
 	if (self->rotation == 0) { // Portrait
@@ -922,7 +922,7 @@ STATIC void set_rotation(ili9342c_ILI9342C_obj_t *self) {
 }
 
 
-STATIC mp_obj_t ili9342c_ILI9342C_rotation(mp_obj_t self_in, mp_obj_t value) {
+static mp_obj_t ili9342c_ILI9342C_rotation(mp_obj_t self_in, mp_obj_t value) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
 	mp_int_t rotation = mp_obj_get_int(value) % 8;
@@ -934,21 +934,21 @@ STATIC mp_obj_t ili9342c_ILI9342C_rotation(mp_obj_t self_in, mp_obj_t value) {
 MP_DEFINE_CONST_FUN_OBJ_2(ili9342c_ILI9342C_rotation_obj, ili9342c_ILI9342C_rotation);
 
 
-STATIC mp_obj_t ili9342c_ILI9342C_width(mp_obj_t self_in) {
+static mp_obj_t ili9342c_ILI9342C_width(mp_obj_t self_in) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 	return mp_obj_new_int(self->width);
 }
 
 MP_DEFINE_CONST_FUN_OBJ_1(ili9342c_ILI9342C_width_obj, ili9342c_ILI9342C_width);
 
-STATIC mp_obj_t ili9342c_ILI9342C_height(mp_obj_t self_in) {
+static mp_obj_t ili9342c_ILI9342C_height(mp_obj_t self_in) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 	return mp_obj_new_int(self->height);
 }
 
 MP_DEFINE_CONST_FUN_OBJ_1(ili9342c_ILI9342C_height_obj, ili9342c_ILI9342C_height);
 
-STATIC mp_obj_t ili9342c_ILI9342C_vscrdef(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_vscrdef(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_int_t tfa = mp_obj_get_int(args[1]);
@@ -963,7 +963,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_vscrdef(size_t n_args, const mp_obj_t *args) {
 
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_vscrdef_obj, 4, 4, ili9342c_ILI9342C_vscrdef);
 
-STATIC mp_obj_t ili9342c_ILI9342C_vscsad(mp_obj_t self_in, mp_obj_t vssa_in) {
+static mp_obj_t ili9342c_ILI9342C_vscsad(mp_obj_t self_in, mp_obj_t vssa_in) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
 	mp_int_t vssa	= mp_obj_get_int(vssa_in);
@@ -975,7 +975,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_vscsad(mp_obj_t self_in, mp_obj_t vssa_in) {
 
 MP_DEFINE_CONST_FUN_OBJ_2(ili9342c_ILI9342C_vscsad_obj, ili9342c_ILI9342C_vscsad);
 
-STATIC mp_obj_t ili9342c_ILI9342C_init(mp_obj_t self_in) {
+static mp_obj_t ili9342c_ILI9342C_init(mp_obj_t self_in) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(self_in);
 	ili9342c_ILI9342C_hard_reset(self_in);
 	ili9342c_ILI9342C_soft_reset(self_in);
@@ -1011,7 +1011,7 @@ STATIC mp_obj_t ili9342c_ILI9342C_init(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(ili9342c_ILI9342C_init_obj, ili9342c_ILI9342C_init);
 
-STATIC mp_obj_t ili9342c_ILI9342C_hline(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_hline(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_int_t x	   = mp_obj_get_int(args[1]);
@@ -1023,9 +1023,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_hline(size_t n_args, const mp_obj_t *args) {
 
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_hline_obj, 5, 5, ili9342c_ILI9342C_hline);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_hline_obj, 5, 5, ili9342c_ILI9342C_hline);
 
-STATIC mp_obj_t ili9342c_ILI9342C_vline(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_vline(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_int_t x	   = mp_obj_get_int(args[1]);
@@ -1037,9 +1037,9 @@ STATIC mp_obj_t ili9342c_ILI9342C_vline(size_t n_args, const mp_obj_t *args) {
 
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_vline_obj, 5, 5, ili9342c_ILI9342C_vline);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_vline_obj, 5, 5, ili9342c_ILI9342C_vline);
 
-STATIC mp_obj_t ili9342c_ILI9342C_rect(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_rect(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	mp_int_t x	   = mp_obj_get_int(args[1]);
@@ -1054,21 +1054,21 @@ STATIC mp_obj_t ili9342c_ILI9342C_rect(size_t n_args, const mp_obj_t *args) {
 	fast_vline(self, x + w - 1, y, h, color);
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_rect_obj, 6, 6, ili9342c_ILI9342C_rect);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_rect_obj, 6, 6, ili9342c_ILI9342C_rect);
 
-STATIC uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
+static uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
 	return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3);
 }
 
-STATIC mp_obj_t ili9342c_color565(mp_obj_t r, mp_obj_t g, mp_obj_t b) {
+static mp_obj_t ili9342c_color565(mp_obj_t r, mp_obj_t g, mp_obj_t b) {
 	return MP_OBJ_NEW_SMALL_INT(color565(
 		(uint8_t) mp_obj_get_int(r),
 		(uint8_t) mp_obj_get_int(g),
 		(uint8_t) mp_obj_get_int(b)));
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_3(ili9342c_color565_obj, ili9342c_color565);
+static MP_DEFINE_CONST_FUN_OBJ_3(ili9342c_color565_obj, ili9342c_color565);
 
-STATIC void map_bitarray_to_rgb565(uint8_t const *bitarray, uint8_t *buffer, int length, int width, uint16_t color, uint16_t bg_color) {
+static void map_bitarray_to_rgb565(uint8_t const *bitarray, uint8_t *buffer, int length, int width, uint16_t color, uint16_t bg_color) {
 	int row_pos = 0;
 	for (int i = 0; i < length; i++) {
 		uint8_t byte = bitarray[i];
@@ -1091,7 +1091,7 @@ STATIC void map_bitarray_to_rgb565(uint8_t const *bitarray, uint8_t *buffer, int
 
 // bitarray buffer width color bg_color
 
-STATIC mp_obj_t ili9342c_map_bitarray_to_rgb565(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_map_bitarray_to_rgb565(size_t n_args, const mp_obj_t *args) {
 	mp_buffer_info_t bitarray_info;
 	mp_buffer_info_t buffer_info;
 
@@ -1104,7 +1104,7 @@ STATIC mp_obj_t ili9342c_map_bitarray_to_rgb565(size_t n_args, const mp_obj_t *a
 	return mp_const_none;
 }
 
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_map_bitarray_to_rgb565_obj, 3, 6, ili9342c_map_bitarray_to_rgb565);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_map_bitarray_to_rgb565_obj, 3, 6, ili9342c_map_bitarray_to_rgb565);
 
 //
 // jpg routines
@@ -1217,7 +1217,7 @@ static int out_slow (       // 1:Ok, 0:Aborted
 }
 
 
-STATIC mp_obj_t ili9342c_ILI9342C_jpg(size_t n_args, const mp_obj_t *args) {
+static mp_obj_t ili9342c_ILI9342C_jpg(size_t n_args, const mp_obj_t *args) {
 	ili9342c_ILI9342C_obj_t *self = MP_OBJ_TO_PTR(args[0]);
 
 	const char *filename = mp_obj_str_get_str(args[1]);
@@ -1294,13 +1294,13 @@ STATIC mp_obj_t ili9342c_ILI9342C_jpg(size_t n_args, const mp_obj_t *args) {
 	return mp_const_none;
 }
 
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_jpg_obj, 4, 5, ili9342c_ILI9342C_jpg);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ili9342c_ILI9342C_jpg_obj, 4, 5, ili9342c_ILI9342C_jpg);
 
 //
 // Dictionary Table
 //
 
-STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
+static const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 	{MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&ili9342c_ILI9342C_write_obj)},
 	{MP_ROM_QSTR(MP_QSTR_write_len), MP_ROM_PTR(&ili9342c_ILI9342C_write_len_obj)},
 	{MP_ROM_QSTR(MP_QSTR_hard_reset), MP_ROM_PTR(&ili9342c_ILI9342C_hard_reset_obj)},
@@ -1329,7 +1329,7 @@ STATIC const mp_rom_map_elem_t ili9342c_ILI9342C_locals_dict_table[] = {
 	{MP_ROM_QSTR(MP_QSTR_jpg), MP_ROM_PTR(&ili9342c_ILI9342C_jpg_obj)},
 };
 
-STATIC MP_DEFINE_CONST_DICT(ili9342c_ILI9342C_locals_dict, ili9342c_ILI9342C_locals_dict_table);
+static MP_DEFINE_CONST_DICT(ili9342c_ILI9342C_locals_dict, ili9342c_ILI9342C_locals_dict_table);
 /* methods end */
 
 #ifdef MP_OBJ_TYPE_GET_SLOT
@@ -1427,7 +1427,7 @@ mp_obj_t ili9342c_ILI9342C_make_new(const mp_obj_type_t *type, size_t n_args, si
 	return MP_OBJ_FROM_PTR(self);
 }
 
-STATIC const mp_map_elem_t ili9342c_module_globals_table[] = {
+static const mp_map_elem_t ili9342c_module_globals_table[] = {
 	{MP_ROM_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_ili9342c)},
 	{MP_ROM_QSTR(MP_QSTR_color565), (mp_obj_t) &ili9342c_color565_obj},
 	{MP_ROM_QSTR(MP_QSTR_map_bitarray_to_rgb565), (mp_obj_t) &ili9342c_map_bitarray_to_rgb565_obj},
@@ -1444,7 +1444,7 @@ STATIC const mp_map_elem_t ili9342c_module_globals_table[] = {
 	{MP_ROM_QSTR(MP_QSTR_SLOW), MP_ROM_INT(JPG_MODE_SLOW)},
 };
 
-STATIC MP_DEFINE_CONST_DICT(mp_module_ili9342c_globals, ili9342c_module_globals_table);
+static MP_DEFINE_CONST_DICT(mp_module_ili9342c_globals, ili9342c_module_globals_table);
 
 const mp_obj_module_t mp_module_ili9342c = {
 	.base	 = {&mp_type_module},
